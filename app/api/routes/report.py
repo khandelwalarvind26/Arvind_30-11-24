@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.db.database import get_db
 from app.db.models import Report, ReportStatusEnum
 from app.services.reports_service import generator
@@ -14,13 +15,13 @@ async def trigger_report(background_tasks: BackgroundTasks, db: AsyncSession = D
         db.add(report)
         await db.commit()
         await db.refresh(report)
-        background_tasks.add_task(generator(report))
+        background_tasks.add_task(generator, report.id)
         return report.id
     
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="Internal Server Error" + str(e)
+            detail="Internal Server Error " + str(e)
         )
 
     finally:
@@ -31,7 +32,8 @@ async def trigger_report(background_tasks: BackgroundTasks, db: AsyncSession = D
 @router.get("/get")
 async def get_report(id: str, db: AsyncSession = Depends(get_db)):
     try:
-        report = db.query(Report).filter(Report.id == id).first()
+        result = await db.execute(select(Report).filter(Report.id == id))
+        report = result.scalars().first()
 
         if not report:
             raise HTTPException(
@@ -47,7 +49,7 @@ async def get_report(id: str, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="Internal Server Error" + str(e)
+            detail="Internal Server Error " + str(e)
         )
     
     finally:

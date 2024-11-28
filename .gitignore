@@ -1,3 +1,4 @@
 /store-monitoring-data
 .env
 __pycache__/
+**.log

@@ -1,18 +1,12 @@
-from sqlalchemy import Column, Integer, String, CHAR, ForeignKey, DateTime, CheckConstraint, Enum
+from sqlalchemy import Column, Integer, String, CHAR, ForeignKey, DateTime, CheckConstraint, Enum, Time
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from datetime import datetime
-import enum, uuid
+import uuid
+from app.utils.common import StatusEnum, ReportStatusEnum
+
 
 Base = declarative_base()
-
-class StatusEnum(enum.Enum):
-    active = "active"
-    inactive = "inactive"
-
-class ReportStatusEnum(enum.Enum):
-    Running = "Running"
-    Completed = "Completed"
 
 class Store(Base):
     __tablename__ = "stores"
@@ -27,8 +21,8 @@ class StoreHours(Base):
     id = Column(Integer, primary_key=True, index=True)  # Primary key
     store_id = Column(CHAR(36), ForeignKey('stores.store_id', ondelete='CASCADE'), nullable=False)
     day_of_week = Column(Integer, CheckConstraint('day_of_week >= 0 AND day_of_week <= 6'))
-    start_time_local = Column(DateTime, nullable=False)
-    end_time_local = Column(DateTime, nullable=False)
+    start_time_local = Column(Time, nullable=False)
+    end_time_local = Column(Time, nullable=False)
 
 
 class StoreStatus(Base):
@@ -37,7 +31,7 @@ class StoreStatus(Base):
     id = Column(Integer, primary_key=True, index=True)
     store_id = Column(CHAR(36), ForeignKey('stores.store_id', ondelete='CASCADE'), nullable=False)
     status = Column(Enum(StatusEnum), nullable=False)
-    timestamp = Column(DateTime(timezone=True), nullable=False)
+    timestamp = Column(DateTime, nullable=False, index=True)
 
 
 class Report(Base):
