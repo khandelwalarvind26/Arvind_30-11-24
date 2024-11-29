@@ -6,14 +6,12 @@ from app.db.models import Report, ReportStatusEnum
 from app.services.report_service import generator
 from datetime import datetime
 from typing import Optional
-from fastapi.responses import FileResponse
-import os
 
 router = APIRouter()
 
 # API for triggering a new report generation
 @router.post("/trigger")
-async def trigger_report(timestamp: Optional[datetime], background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def trigger_report(background_tasks: BackgroundTasks, timestamp: Optional[datetime] = None, db: AsyncSession = Depends(get_db)):
     try:
         
         report = Report(status=ReportStatusEnum.Running)

@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta, time
 from app.db.database import get_db
 from app.utils.common import StatusEnum, downtime_offset
-from app.db.models import StoreHours, StoreStatus
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.models import StoreHours
 from sqlalchemy.future import select
 from collections import defaultdict
 from zoneinfo import ZoneInfo

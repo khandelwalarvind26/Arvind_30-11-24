@@ -98,21 +98,33 @@ async def fetch_stores_and_queries(report_id: str):
         async for db in get_db():
             result = await db.execute(select(Report).filter(Report.id == report_id))
             report = result.scalars().first()
-            stores_list = await load_stores(db)
+            stores_list = await fetch_stores(db, report.created_at)
             queries = await fetch_queries(db, report.created_at)
-
+            
             return stores_list, queries, report.created_at
 
 
 # Load timezones into memory
-async def load_stores(db: AsyncSession):
+async def fetch_stores(db: AsyncSession, created_at: datetime):
 
     default_timezone = 'America/Chicago'
 
+    time_limit = created_at - timedelta(days=7)
+
     query = select(
         StoreStatus.store_id,
-        func.coalesce(Store.timezone_str, literal(default_timezone)).label('timezone')
-    ).join(Store, StoreStatus.store_id==Store.store_id, isouter=True).distinct(StoreStatus.store_id)
+            func.coalesce(
+                Store.timezone_str, 
+                literal(default_timezone)
+            ).label('timezone')
+        ).filter(
+            StoreStatus.timestamp >= time_limit, 
+            StoreStatus.timestamp <= created_at
+        ).join(
+            Store, 
+            StoreStatus.store_id==Store.store_id, 
+            isouter=True
+        ).distinct(StoreStatus.store_id)
 
     result = await db.execute(query) # Get all timezones
     stores_list = result.fetchall()
