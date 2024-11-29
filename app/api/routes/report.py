@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.database import get_db
 from app.db.models import Report, ReportStatusEnum
-from app.services.reports_service import generator
+from app.services.report_service import generator
 from datetime import datetime
 from typing import Optional
 
@@ -32,7 +32,7 @@ async def trigger_report(timestamp: Optional[datetime], background_tasks: Backgr
         )
 
     finally:
-        db.close()
+        await db.close()
 
 
 # API for fetching actual report
@@ -51,7 +51,7 @@ async def get_report(id: str, db: AsyncSession = Depends(get_db)):
         if report.status == ReportStatusEnum.Running:
             return ReportStatusEnum.Running
         else:
-            return ReportStatusEnum.Completed
+            return report.file_path
 
     except Exception as e:
         raise HTTPException(
@@ -60,4 +60,4 @@ async def get_report(id: str, db: AsyncSession = Depends(get_db)):
         )
     
     finally:
-        db.close()
+        await db.close()

@@ -3,8 +3,8 @@ from sqlalchemy.orm import sessionmaker
 from app.db.models import Base
 from app.core.config import settings
 from app.utils.common import pool_size
-from app.utils.logger import logger
 
+# Create engine, define maximum concurrent connections
 engine = create_async_engine(
     settings.DATABASE_URL,
     pool_size=pool_size,
@@ -12,6 +12,7 @@ engine = create_async_engine(
     echo=False
 )
 
+# Create session
 SessionLocal = sessionmaker(
     autocommit=False,   
     autoflush=False, 
@@ -19,6 +20,7 @@ SessionLocal = sessionmaker(
     class_=AsyncSession
 )
 
+# Async function to get db
 async def get_db():
     async with SessionLocal() as session:
         try:
