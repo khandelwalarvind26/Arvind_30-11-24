@@ -97,6 +97,11 @@ with open(store_status_file_path, 'r') as f:
     )
 
 # curr.execute(add_missing_store_ids_query)
+create_indices_query = """
+    CREATE INDEX idx_store_id ON store_hours(store_id);
+    CREATE INDEX idx_timestamp ON store_status(timestamp);
+"""
+
 print("Inserted values, starting commit.")
 conn.commit()
 print("Finished commit.")

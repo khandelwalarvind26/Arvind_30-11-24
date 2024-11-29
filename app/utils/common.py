@@ -1,7 +1,7 @@
 import enum
 import asyncio
 
-pool_size = 10
+pool_size = 12
 
 semaphore = asyncio.Semaphore(pool_size)
 

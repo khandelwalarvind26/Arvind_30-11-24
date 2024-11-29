@@ -18,7 +18,7 @@ class StoreHours(Base):
     __tablename__ = "store_hours"
 
     id = Column(Integer, primary_key=True, index=True)  # Primary key
-    store_id = Column(CHAR(36), nullable=False)
+    store_id = Column(CHAR(36), nullable=False, index=True)
     day_of_week = Column(Integer, CheckConstraint('day_of_week >= 0 AND day_of_week <= 6'))
     start_time_local = Column(Time, nullable=False)
     end_time_local = Column(Time, nullable=False)
