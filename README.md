@@ -49,13 +49,19 @@ Follow the steps below to set up and run the project locally:
 
    Extract the files and place them in the `ingestion/csv` directory.
 
-5. **Ingest Data**  
+5. **Prepare env**  
+   Add your database_url to env file  
+   ```bash
+   DATABASE_URL="postgresql+asyncpg://USERNAME:PASSWORD@ADDRESS:PORT/DBNAME"
+   ```
+
+6. **Ingest Data**  
    Run the data ingestion script to load the data into the database:  
    ```bash
    python -m app.ingestion.ingestion
    ```
 
-6. **Run the Application**  
+7. **Run the Application**  
    Start the API server:  
    ```bash
    uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
@@ -68,6 +74,12 @@ Follow the steps below to set up and run the project locally:
    [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 2. Use the interactive Swagger UI to explore and test the endpoints.
+
+3. Go to any browser tab and make get request as
+   ```bash
+   http://127.0.0.1:8000/report/get?id=repot_id
+   ```
+   to download csv file for completed report
 
 ---
 
