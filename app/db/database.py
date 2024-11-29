@@ -1,15 +1,15 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 from app.db.models import Base
 from app.core.config import settings
-from app.utils.common import pool_size
+
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 # Create engine, define maximum concurrent connections
 engine = create_async_engine(
     settings.DATABASE_URL,
-    pool_size=pool_size,
-    max_overflow=2*pool_size,
-    echo=False
+    pool_size=settings.POOL_SIZE,
+    max_overflow=2*settings.POOL_SIZE,
+    echo=True
 )
 
 # Create session

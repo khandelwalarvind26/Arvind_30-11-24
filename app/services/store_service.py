@@ -1,11 +1,14 @@
-from datetime import datetime, timedelta, time
 from app.db.database import get_db
-from app.utils.common import StatusEnum, downtime_offset
 from app.db.models import StoreHours
+from app.utils.common import StatusEnum
+from app.utils.common import semaphore
+from app.core.config import settings
+
 from sqlalchemy.future import select
+
 from collections import defaultdict
 from zoneinfo import ZoneInfo
-from app.utils.common import semaphore
+from datetime import datetime, timedelta, time
 
 class StoreService:
 
@@ -119,7 +122,7 @@ class StoreService:
             if self.last_status == StatusEnum.inactive:
                 
                 # Take downtime_offset minutes from last_timestamp as downtime
-                mid_time = self.last_timestamp + timedelta(minutes = downtime_offset)
+                mid_time = self.last_timestamp + timedelta(minutes = settings.DOWNTIME_OFFSET)
 
                 if mid_time > current_timestamp:
                     mid_time = current_timestamp
@@ -148,7 +151,7 @@ class StoreService:
             else :
 
                 # Take last downtime_offset minutes from current_time as downtime
-                mid_time = current_timestamp - timedelta(minutes = downtime_offset)
+                mid_time = current_timestamp - timedelta(minutes = settings.DOWNTIME_OFFSET)
 
                 if mid_time < self.last_timestamp:
                     mid_time = self.last_timestamp

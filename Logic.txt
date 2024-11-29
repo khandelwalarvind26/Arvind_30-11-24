@@ -1,0 +1,33 @@
+Examples
+
+Store Hours:
+10:00:00 - 21:30:00
+
+First Status query at:
+10:30:00 - Active or inactive : Mark 10 - 10:30 as whatever that status query is 
+
+Basic crux - for an inactive query take +/- 5 minutes as inactive
+for consecutive inactive queries take entire time as inactive
+for consecutive active queries simple logic
+
+10:45 +/- 5 minutes of that query as inactive, 10:46 active then change uptime/downtime
+minutes offset can be easily modified by DOWNTIME_OFFSET in .env
+
+4 cases:
+previous_query, current_query
+        active, active  -> Mark entire time between as active
+                          eg query at 10 and 11 both active then minutes between 10 and 11 active
+
+        active, inactive -> mark time from last query till 5 minutes before current_query as active 
+                            last 5 minutes from current_query as inactive
+                            eg query at 10:30 active but at 11 inactive -> mark 10:30 - 10:55 as active, 10:55 - 11 as inactive
+
+      inactive, active -> mark 5 minutes from last_query as inactive
+                          from the 5 minutes timestamp to current_time as active
+                          eg query at 10:30 inactive but at 11 active -> mark 10:30 - 10:35 as inactive, 10:35 - 11 as active 
+
+      inactive, inactive -> mark time between as inactive
+
+
+Last status query at:
+20:30:00 - Active or inactive : Mark entire 20:30 -> 21:30 as whatever status

@@ -1,8 +1,10 @@
+from app.utils.common import StatusEnum, ReportStatusEnum
+
 from sqlalchemy import Column, Integer, String, CHAR, DateTime, CheckConstraint, Enum, Time, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
+
 import uuid
-from app.utils.common import StatusEnum, ReportStatusEnum
 
 
 Base = declarative_base()

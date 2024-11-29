@@ -1,11 +1,7 @@
-import enum
-import asyncio
+from app.core.config import settings
+import enum, asyncio
 
-pool_size = 12
-
-semaphore = asyncio.Semaphore(pool_size)
-
-downtime_offset = 5
+semaphore = asyncio.Semaphore(settings.POOL_SIZE)
 
 class StatusEnum(enum.Enum):
     active = "active"

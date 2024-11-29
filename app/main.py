@@ -1,6 +1,7 @@
-from fastapi import FastAPI
 from app.api.routes import report
 from app.db.database import create_tables
+
+from fastapi import FastAPI
 
 app = FastAPI()
 

@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from app.db.database import get_db
 from app.db.models import Report, ReportStatusEnum
 from app.services.generator_service import generator
+from app.utils.logger import logger
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
+
 from datetime import datetime
 from typing import Optional
-from app.utils.logger import logger
-from fastapi.responses import FileResponse
 import os, traceback
 
 router = APIRouter()
