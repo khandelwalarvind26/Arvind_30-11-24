@@ -9,6 +9,7 @@ from app.utils.common import ReportStatusEnum, semaphore
 from datetime import datetime
 from app.services.store_service import StoreService 
 from app.services.file_service import csv_writer 
+from app.utils.logger import logger
 
 # Function to get db
 async def generator(report_id: str):
@@ -17,43 +18,43 @@ async def generator(report_id: str):
         time0 = datetime.now()
 
         #### Step 1
-        print("Fetch stores and queries from db")
+        logger.info(f"{report_id} : Fetch stores and queries from db")
         stores_list, queries, created_at = await fetch_stores_and_queries(report_id)
         time1 = datetime.now()
-        print("Done fetching", (time1 - time0).total_seconds())
+        logger.info(f"{report_id} : Done fetching {(time1 - time0).total_seconds()}")
 
         #### Step 2
-        print("Initializing store objects")
+        logger.info(f"{report_id} : Initializing store objects")
         stores = await initialize_store_objects(stores_list, created_at)
         time2 = datetime.now()
-        print("Done Initializing store objects", (time2 - time1).total_seconds())
+        logger.info(f"{report_id} : Done Initializing store objects {(time2 - time1).total_seconds()}")
 
         #### Step 3
-        print(f"Processing {len(queries)} queries sequentially")
+        logger.info(f"{report_id} : Processing {len(queries)} queries sequentially")
 
         for query in queries:
             stores[query.store_id].process_query(query)
 
         time3 = datetime.now()
-        print("Finished processing queries", (time3 - time2).total_seconds())
+        logger.info(f"{report_id} : Finished processing queries {(time3 - time2).total_seconds()}")
 
         #### Step 4
-        print("Generating csv report")
+        logger.info(f"{report_id} : Generating csv report")
         path = await csv_writer(report_id, stores)
         time4 = datetime.now()
-        print("Finished generating report", (time4 - time3).total_seconds())
+        logger.info(f"{report_id} : Finished generating report {(time4 - time3).total_seconds()}")
 
         #### Step 5
-        print("Changing report in db")
+        logger.info(f"{report_id} : Changing report in db")
         await finalize_report(report_id, path)
         time5 = datetime.now()
-        print("Finished changing report in db", (time5 - time4).total_seconds())
+        logger.info(f"{report_id} : Finished changing report in db {(time5 - time4).total_seconds()}")
 
-        print("Total time: ", (time5 - time0).total_seconds())
+        logger.info(f"{report_id} : Total time: {(time5 - time0).total_seconds()}")
 
     except Exception as _:
         tb = traceback.format_exc()
-        print(tb)
+        logger.error(tb)
 
 
 # Abstraction function to make final changes to report

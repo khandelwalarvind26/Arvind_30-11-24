@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.database import get_db
 from app.db.models import Report, ReportStatusEnum
-from app.services.report_service import generator
+from app.services.generator_service import generator
 from datetime import datetime
 from typing import Optional
 
