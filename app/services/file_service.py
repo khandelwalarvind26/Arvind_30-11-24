@@ -1,23 +1,14 @@
-from app.services.store_service import StoreService
-from app.utils.common import ReportColumnEnum
-import os, csv
+from app.db.models import Report
+from app.db.database import get_db
+from app.utils.common import semaphore, ReportStatusEnum, ReportColumnEnum
+from sqlalchemy.future import select
+import io, csv
 
 # Function to write all reports to csv file
 async def csv_writer(report_id: str, stores: dict):
-    
-    # Determine the root of the project (two levels up from 'app' folder)
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-    # Define folder and file paths
-    folder_path = os.path.join(project_root, "output_folder")
-    file_path = os.path.join(folder_path, f"{report_id}.csv")
-
-    # Create folder if it doesn't exist
-    os.makedirs(folder_path, exist_ok=True)
-
-    # Open file and write CSV data
-    file = open(file_path, mode="w", newline="", encoding="utf-8")
-    writer = csv.writer(file)
+    csv_buffer = io.StringIO()
+    writer = csv.writer(csv_buffer)
 
     # Write headings
     headings = [
@@ -49,6 +40,28 @@ async def csv_writer(report_id: str, stores: dict):
 
         writer.writerow(data)
 
-    file.close()
+    csv_bytes = csv_buffer.getvalue().encode('utf-8')
 
-    return file_path
+    csv_buffer.close()
+
+    await finalize_report(report_id, csv_bytes)
+
+
+# Abstraction function to make final changes to report
+async def finalize_report(report_id: str, file):
+
+    # Mark report status as completed
+    async with semaphore:
+        async for db in get_db():
+
+            # Fetch report
+            result = await db.execute(select(Report).filter(Report.id == report_id))
+            report = result.scalars().first()
+
+            # Make changes to report
+            report.status = ReportStatusEnum.Completed
+            report.file = file
+
+            # Commit
+            await db.merge(report)
+            await db.commit()

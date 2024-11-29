@@ -44,37 +44,11 @@ async def generator(report_id: str):
         time4 = datetime.now()
         logger.info(f"{report_id} : Finished generating report {(time4 - time3).total_seconds()}")
 
-        #### Step 5
-        logger.info(f"{report_id} : Changing report in db")
-        await finalize_report(report_id, path)
-        time5 = datetime.now()
-        logger.info(f"{report_id} : Finished changing report in db {(time5 - time4).total_seconds()}")
-
-        logger.info(f"{report_id} : Total time: {(time5 - time0).total_seconds()}")
+        logger.info(f"{report_id} : Total time: {(time4 - time0).total_seconds()}")
 
     except Exception as _:
         tb = traceback.format_exc()
         logger.error(tb)
-
-
-# Abstraction function to make final changes to report
-async def finalize_report(report_id: str, path):
-
-    # Mark report status as completed
-    async with semaphore:
-        async for db in get_db():
-
-            # Fetch report
-            result = await db.execute(select(Report).filter(Report.id == report_id))
-            report = result.scalars().first()
-
-            # Make changes to report
-            report.status = ReportStatusEnum.Completed
-            report.file_path = path
-
-            # Commit
-            await db.merge(report)
-            await db.commit()
 
 
 # Abstraction function for initializing a dict of store_id: store_obj

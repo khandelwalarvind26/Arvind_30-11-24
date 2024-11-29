@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, CHAR, ForeignKey, DateTime, CheckConstraint, Enum, Time
+from sqlalchemy import Column, Integer, String, CHAR, DateTime, CheckConstraint, Enum, Time, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
-from datetime import datetime
 import uuid
 from app.utils.common import StatusEnum, ReportStatusEnum
 
@@ -38,7 +37,7 @@ class Report(Base):
     __tablename__ = "reports"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    file_path = Column(String, nullable=True)
+    file = Column(LargeBinary, nullable=True)
     status = Column(Enum(ReportStatusEnum), nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
 
