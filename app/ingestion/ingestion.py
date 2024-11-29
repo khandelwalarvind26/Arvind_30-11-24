@@ -42,7 +42,7 @@ curr = conn.cursor()
 print("Cursor created.")
 
 # Determine the root of the project (two levels up from 'app' folder)
-current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "/csv/"))
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "csv/"))
 
 set_timezone_query = """SET TIMEZONE = 'UTC';"""
 
