@@ -20,7 +20,7 @@ class StoreService:
             created_at - timedelta(hours = 1),
         )
         self.last_timestamp = None
-        self.last_status = StatusEnum.active
+        self.last_status = None
         self.store_hours = None
     
 
@@ -108,6 +108,9 @@ class StoreService:
         # If start of new store_hour range, then give last_timestamp as start of store_hour
         if self.last_timestamp is None:
             self.last_timestamp = self.combine_timestamps(store_hours[0], current_timestamp)
+        
+        if self.last_status is None:
+            self.last_status = current_status
 
         # _, active
         if current_status == StatusEnum.active:
@@ -180,7 +183,7 @@ class StoreService:
 
                 last_store_hour = self.is_in_store_hours(self.last_timestamp)
                 self.process_ending_query(last_store_hour)
-                self.last_timestamp, self.last_status = None, StatusEnum.active
+                self.last_timestamp, self.last_status = None, None
             
             # Debug query
             # print(current_time.strftime("%Y-%m-%d %H:%M:%S"), store_hour[0].strftime("%H:%M:%S"), store_hour[1].strftime("%H:%M:%S"), query.status)
