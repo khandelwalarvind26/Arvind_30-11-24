@@ -5,6 +5,14 @@ The Uptime Report Generator is a Python-based tool that processes store monitori
 
 ---
 
+## Highlights
+
+- Runtime < 10 seconds / report
+- Can generate multiple reports in parallel
+- Logic: +/- 5 minutes of an inactive query are most probably downtime (check Logic.txt or video for explanation)
+
+---
+
 ## Requirements
 
 - **Python 3.8** or higher
