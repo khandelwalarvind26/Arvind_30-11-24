@@ -4,14 +4,21 @@ from sqlalchemy.future import select
 from app.db.database import get_db
 from app.db.models import Report, ReportStatusEnum
 from app.services.reports_service import generator
+from datetime import datetime
+from typing import Optional
 
 router = APIRouter()
 
 # API for triggering a new report generation
 @router.post("/trigger")
-async def trigger_report(background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def trigger_report(timestamp: Optional[datetime], background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     try:
+        
         report = Report(status=ReportStatusEnum.Running)
+
+        if timestamp is not None:
+            report.created_at = timestamp
+
         db.add(report)
         await db.commit()
         await db.refresh(report)

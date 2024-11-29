@@ -17,3 +17,8 @@ class ReportColumnEnum(enum.Enum):
     downtime_last_hour = 3
     downtime_last_day = 4
     downtime_last_week = 5
+
+class TimeDecrement(enum.Enum):
+    week = 0
+    day = 1
+    hour = 2
