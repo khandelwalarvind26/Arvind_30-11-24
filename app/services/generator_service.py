@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, literal
 from sqlalchemy.future import select
-from app.utils.common import ReportStatusEnum, semaphore
+from app.utils.common import semaphore
 from datetime import datetime
 from app.services.store_service import StoreService 
 from app.services.file_service import csv_writer 

@@ -7,8 +7,17 @@ from app.services.generator_service import generator
 from datetime import datetime
 from typing import Optional
 from app.utils.logger import logger
+from fastapi.responses import FileResponse
+import os, traceback
 
 router = APIRouter()
+
+
+# Remove the file after the response is sent
+async def cleanup(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
 
 # API for triggering a new report generation
 @router.post("/trigger")
@@ -26,8 +35,9 @@ async def trigger_report(background_tasks: BackgroundTasks, timestamp: Optional[
         background_tasks.add_task(generator, report.id)
         return report.id
     
-    except Exception as e:
-        logger.error(e)
+    except Exception as _:
+        tb = traceback.format_exc()
+        logger.error(tb)
         raise HTTPException(
             status_code=500,
             detail="Internal Server Error"
@@ -39,7 +49,7 @@ async def trigger_report(background_tasks: BackgroundTasks, timestamp: Optional[
 
 # API for fetching actual report
 @router.get("/get")
-async def get_report(id: str, db: AsyncSession = Depends(get_db)):
+async def get_report(id: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(select(Report).filter(Report.id == id))
         report = result.scalars().first()
@@ -52,11 +62,26 @@ async def get_report(id: str, db: AsyncSession = Depends(get_db)):
 
         if report.status == ReportStatusEnum.Running:
             return ReportStatusEnum.Running
-        else:
-            return ReportStatusEnum.Completed
+        
+        # Save the BLOB content as a temporary CSV file
+        current_path = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+        file_path = os.path.join(current_path, f"{report.id}.csv")
+        with open(file_path, "wb") as f:
+            f.write(report.file)
 
-    except Exception as e:
-        logger.error(e)
+        # Executed only after response is sent
+        background_tasks.add_task(cleanup, file_path)
+
+        # Return the CSV file as a response
+        return FileResponse(
+            path=file_path,
+            media_type="text/csv",
+            filename=f"{report.id}.csv"
+        )
+
+    except Exception as _:
+        tb = traceback.format_exc()
+        logger.error(tb)
         raise HTTPException(
             status_code=500,
             detail="Internal Server Error"
