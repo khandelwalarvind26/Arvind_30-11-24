@@ -1,11 +1,11 @@
 import traceback, asyncio
 from app.db.models import Store, StoreStatus, Report
 from app.db.database import get_db
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, literal
 from sqlalchemy.future import select
-from app.utils.common import ReportStatusEnum
+from app.utils.common import ReportStatusEnum, semaphore
 from datetime import datetime
 from app.services.store_service import StoreService 
 from app.services.file_service import csv_writer 
@@ -14,41 +14,53 @@ from app.services.file_service import csv_writer
 async def generator(report_id: str):
 
     try:
-
-        stores = None
-        
-        # Get db session
-        async for db in get_db():
-            result = await db.execute(select(Report).filter(Report.id == report_id))
-            report = result.scalars().first()
-            stores = await load_stores(db)
-
-        # Calculate the up/down time for different stores concurrently
-        tasks = []
         time0 = datetime.now()
-        print("Running...")
-        store_objs = []
 
-        for (store_id, timezone) in stores:
-
-            store = StoreService(store_id, report.created_at, timezone)
-            # async function to process queries
-            store_objs.append(store)
-            tasks.append(store.process())
-
-        # Wait for all tasks to complete in parallel
-        await asyncio.gather(*tasks)
-
-        # log time
+        #### Step 1
+        print("Fetch stores and queries from db")
+        stores_list, queries, created_at = await fetch_stores_and_queries(report_id)
         time1 = datetime.now()
-        print("Finished calculation, generating report", (time1 - time0).total_seconds())
+        print("Done fetching", (time1 - time0).total_seconds())
 
-        # write to csv
-        path = await csv_writer(report_id, store_objs)
+        #### Step 2
+        print("Initializing store objects")
+        stores = await initialize_store_objects(stores_list, created_at)
         time2 = datetime.now()
-        print("Finished generating report", (time2 - time1).total_seconds())
+        print("Done Initializing store objects", (time2 - time1).total_seconds())
 
-        # Mark report status as completed
+        #### Step 3
+        print(f"Processing {len(queries)} queries sequentially")
+
+        for query in queries:
+            stores[query.store_id].process_query(query)
+
+        time3 = datetime.now()
+        print("Finished processing queries", (time3 - time2).total_seconds())
+
+        #### Step 4
+        print("Generating csv report")
+        path = await csv_writer(report_id, stores)
+        time4 = datetime.now()
+        print("Finished generating report", (time4 - time3).total_seconds())
+
+        #### Step 5
+        print("Changing report in db")
+        await finalize_report(report_id, path)
+        time5 = datetime.now()
+        print("Finished changing report in db", (time5 - time4).total_seconds())
+
+        print("Total time: ", (time5 - time0).total_seconds())
+
+    except Exception as _:
+        tb = traceback.format_exc()
+        print(tb)
+
+
+# Abstraction function to make final changes to report
+async def finalize_report(report_id: str, path):
+
+    # Mark report status as completed
+    async with semaphore:
         async for db in get_db():
 
             # Fetch report
@@ -63,12 +75,36 @@ async def generator(report_id: str):
             await db.merge(report)
             await db.commit()
 
-    except Exception as _:
-        tb = traceback.format_exc()
-        print(tb)
+
+# Abstraction function for initializing a dict of store_id: store_obj
+async def initialize_store_objects(stores_list: list, created_at: datetime):
+
+    stores = {}
+    tasks = []
+    for store in stores_list:
+        store_obj = StoreService(store.store_id, created_at, store.timezone)
+        stores[store.store_id] = store_obj
+        tasks.append(store_obj.load_store_hours())
+    
+    await asyncio.gather(*tasks)
+
+    return stores
 
 
-# Load timezones into memory dict
+# Abstraction function for stores and queries
+async def fetch_stores_and_queries(report_id: str):
+
+    async with semaphore:
+        async for db in get_db():
+            result = await db.execute(select(Report).filter(Report.id == report_id))
+            report = result.scalars().first()
+            stores_list = await load_stores(db)
+            queries = await fetch_queries(db, report.created_at)
+
+            return stores_list, queries, report.created_at
+
+
+# Load timezones into memory
 async def load_stores(db: AsyncSession):
 
     default_timezone = 'America/Chicago'
@@ -81,5 +117,20 @@ async def load_stores(db: AsyncSession):
     result = await db.execute(query) # Get all timezones
     stores_list = result.fetchall()
 
-    stores = [(row.store_id, row.timezone) for row in stores_list] # convert into dict
-    return stores
+    return stores_list
+
+
+# Select all values where timestamp >= current timestamp - 7 days
+async def fetch_queries(db: AsyncSession, created_at: datetime):
+
+    time_limit = created_at - timedelta(days=7)
+
+    # All status requests within a week from current date and not later then current_time
+    result = await db.execute(select(StoreStatus.store_id, StoreStatus.timestamp, StoreStatus.status).filter(
+        StoreStatus.timestamp >= time_limit, 
+        StoreStatus.timestamp <= created_at
+    ).order_by(StoreStatus.timestamp))
+
+    queries = result.fetchall()
+
+    return queries

@@ -3,7 +3,7 @@ from app.utils.common import ReportColumnEnum
 import os, csv
 
 # Function to write all reports to csv file
-async def csv_writer(report_id: str, stores: list[StoreService]):
+async def csv_writer(report_id: str, stores: dict):
     
     # Determine the root of the project (two levels up from 'app' folder)
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -33,7 +33,7 @@ async def csv_writer(report_id: str, stores: list[StoreService]):
     writer.writerow(headings)
 
     # Write data
-    for store in stores:
+    for _, store in stores.items():
         data = [
             store.store_id,
             store.report[ReportColumnEnum.uptime_last_hour.value],

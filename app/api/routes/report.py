@@ -6,6 +6,8 @@ from app.db.models import Report, ReportStatusEnum
 from app.services.report_service import generator
 from datetime import datetime
 from typing import Optional
+from fastapi.responses import FileResponse
+import os
 
 router = APIRouter()
 
@@ -51,7 +53,12 @@ async def get_report(id: str, db: AsyncSession = Depends(get_db)):
         if report.status == ReportStatusEnum.Running:
             return ReportStatusEnum.Running
         else:
-            return report.file_path
+            file_path = report.file_path  # Path to the file you want to serve
+            return file_path
+            # if os.path.exists(file_path):
+            #     return FileResponse(file_path, media_type="text/csv", filename=f"{report.id}.csv")
+            # else:
+            #     return {"error": "File not found"}
 
     except Exception as e:
         raise HTTPException(

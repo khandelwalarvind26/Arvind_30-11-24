@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, time
 from app.db.database import get_db
-from app.utils.common import pool_size, StatusEnum, downtime_offset, ReportColumnEnum
-import asyncio
+from app.utils.common import StatusEnum, downtime_offset
 from app.db.models import StoreHours, StoreStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -23,29 +22,21 @@ class StoreService:
         )
         self.last_timestamp = None
         self.last_status = StatusEnum.active
-    
-
-    # Select all values where timestamp >= current timestamp - 7 days
-    async def fetch_queries(self, db: AsyncSession):
-
-        # All status requests within a week from current date and not later then current_time
-        result = await db.execute(select(StoreStatus.timestamp, StoreStatus.status).filter(
-            StoreStatus.store_id == self.store_id, 
-            StoreStatus.timestamp >= self.time_limit[0], 
-            StoreStatus.timestamp <= self.created_at
-        ).order_by(StoreStatus.timestamp))
-
-        queries = result.fetchall()
-
-        return queries
+        self.store_hours = None
     
 
     # Fetch store hours dict from store_id
-    async def fetch_store_hours(self, db: AsyncSession):
+    async def load_store_hours(self):
+        
+        result = None
 
-        result = await db.execute(select(StoreHours.day_of_week, StoreHours.start_time_local, StoreHours.end_time_local).filter(
-            StoreHours.store_id == self.store_id
-        ))
+        async with semaphore:
+            async for db in get_db():
+
+                result = await db.execute(select(StoreHours.day_of_week, StoreHours.start_time_local, StoreHours.end_time_local).filter(
+                    StoreHours.store_id == self.store_id
+                ))
+            
         store_hours_list = result.fetchall()
 
         store_hours = defaultdict(list)
@@ -53,18 +44,18 @@ class StoreService:
         for row in store_hours_list:
             store_hours[row.day_of_week].append((row.start_time_local, row.end_time_local))
 
-        return store_hours
+        self.store_hours = store_hours
 
 
     # Check whether given timestamp is in store hours
-    def is_in_store_hours(self, timestamp: datetime, store_hours: dict):
+    def is_in_store_hours(self, timestamp: datetime):
 
         day_of_week = timestamp.weekday()
 
-        if day_of_week not in store_hours:
+        if day_of_week not in self.store_hours:
             return False
         
-        for store_hour in store_hours[day_of_week]:
+        for store_hour in self.store_hours[day_of_week]:
             if timestamp.time() >= store_hour[0] and timestamp.time() <= store_hour[1]:
                 return store_hour
         
@@ -113,7 +104,7 @@ class StoreService:
 
 
     # Process Individual query to get last week, day and hour times
-    def process_query(self, current_timestamp: datetime, current_status: StatusEnum, store_hours: tuple):
+    def process_query_helper(self, current_timestamp: datetime, current_status: StatusEnum, store_hours: tuple):
         
         # If start of new store_hour range, then give last_timestamp as start of store_hour
         if self.last_timestamp is None:
@@ -176,37 +167,26 @@ class StoreService:
 
 
     # Process all queries by iterating
-    async def process(self):
-
-        queries, store_hours = None, None
-
-        async with semaphore:
-            async for db in get_db():
-
-                # Fetch queries
-                queries = await self.fetch_queries(db)
-
-                # Fetch store hours dict
-                store_hours = await self.fetch_store_hours(db)
-
-        # Iterate over all queries and compute
-        for query in queries:
+    def process_query(self, query):
             
-            current_time = query.timestamp.astimezone(ZoneInfo(self.timezone)) # Convert query time from utc to local time
+        current_time = query.timestamp.astimezone(ZoneInfo(self.timezone)) # Convert query time from utc to local time
 
-            # If query outside service time, skip
-            store_hour = self.is_in_store_hours(current_time, store_hours)
+        # If query outside service time, skip
+        store_hour = self.is_in_store_hours(current_time)
 
-            if store_hour is not False:
-                    if (self.is_different_store_hour(store_hour, current_time)):
-                        last_store_hour = self.is_in_store_hours(self.last_timestamp, store_hours)
-                        self.process_ending_query(last_store_hour)
-                        self.last_timestamp, self.last_status = None, StatusEnum.active
-                    
-                    # Debug query
-                    # print(current_time.strftime("%Y-%m-%d %H:%M:%S"), store_hour[0].strftime("%H:%M:%S"), store_hour[1].strftime("%H:%M:%S"), query.status)
+        if store_hour is not False:
 
-                    self.process_query(current_time, query.status, store_hour)
-                    self.last_timestamp, self.last_status = current_time, query.status
+            # If day or time store_hour segment has changed since last processed query
+            if (self.is_different_store_hour(store_hour, current_time)):
+
+                last_store_hour = self.is_in_store_hours(self.last_timestamp)
+                self.process_ending_query(last_store_hour)
+                self.last_timestamp, self.last_status = None, StatusEnum.active
+            
+            # Debug query
+            # print(current_time.strftime("%Y-%m-%d %H:%M:%S"), store_hour[0].strftime("%H:%M:%S"), store_hour[1].strftime("%H:%M:%S"), query.status)
+
+            self.process_query_helper(current_time, query.status, store_hour)
+            self.last_timestamp, self.last_status = current_time, query.status
             
 
