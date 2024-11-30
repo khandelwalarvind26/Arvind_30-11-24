@@ -1,5 +1,5 @@
-from app.db.models import Base
-from app.core.config import settings
+from .models import Base
+from app.core import settings
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +9,7 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     pool_size=settings.POOL_SIZE,
     max_overflow=2*settings.POOL_SIZE,
-    echo=True
+    echo=False
 )
 
 # Create session

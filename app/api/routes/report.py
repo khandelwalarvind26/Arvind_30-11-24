@@ -1,7 +1,6 @@
-from app.db.database import get_db
-from app.db.models import Report, ReportStatusEnum
-from app.services.generator_service import generator
-from app.utils.logger import logger
+from app.db import get_db, Report
+from app.services import generator
+from app.utils import logger, cleanup, ReportStatusEnum
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -14,12 +13,6 @@ from typing import Optional
 import os, traceback
 
 router = APIRouter()
-
-
-# Remove the file after the response is sent
-async def cleanup(file_path):
-    if os.path.exists(file_path):
-        os.remove(file_path)
 
 
 # API for triggering a new report generation

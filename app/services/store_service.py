@@ -1,8 +1,6 @@
-from app.db.database import get_db
-from app.db.models import StoreHours
-from app.utils.common import StatusEnum
-from app.utils.common import semaphore
-from app.core.config import settings
+from app.db import get_db, StoreHours
+from app.utils import StatusEnum, semaphore
+from app.core import settings
 
 from sqlalchemy.future import select
 

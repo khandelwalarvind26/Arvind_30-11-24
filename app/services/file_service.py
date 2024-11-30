@@ -1,6 +1,5 @@
-from app.db.models import Report
-from app.db.database import get_db
-from app.utils.common import semaphore, ReportStatusEnum, ReportColumnEnum
+from app.db import Report, get_db
+from app.utils import semaphore, ReportStatusEnum, ReportColumnEnum
 
 from sqlalchemy.future import select
 

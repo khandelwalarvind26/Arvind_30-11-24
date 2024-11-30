@@ -1,5 +1,5 @@
 from app.api.routes import report
-from app.db.database import create_tables
+from app.db import create_tables
 
 from fastapi import FastAPI
 

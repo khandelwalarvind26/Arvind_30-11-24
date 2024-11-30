@@ -1,4 +1,4 @@
-from app.utils.common import StatusEnum, ReportStatusEnum
+from app.utils import StatusEnum, ReportStatusEnum
 
 from sqlalchemy import Column, Integer, String, CHAR, DateTime, CheckConstraint, Enum, Time, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
