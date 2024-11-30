@@ -102,6 +102,8 @@ create_indices_query = """
     CREATE INDEX idx_timestamp ON store_status(timestamp);
 """
 
+curr.execute(create_indices_query)
+
 print("Inserted values, starting commit.")
 conn.commit()
 print("Finished commit.")
